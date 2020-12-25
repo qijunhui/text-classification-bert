@@ -25,10 +25,16 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # 有gpu�
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_PATH)
-        self.bert = BertModel.from_pretrained(BERT_MODEL_PATH)
-        # self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", cache_dir=BERT_MODEL_PATH)
-        # self.bert = BertModel.from_pretrained("bert-base-uncased", cache_dir=BERT_MODEL_PATH)
+        if (
+            os.path.exists(os.path.join(BERT_MODEL_PATH, "config.json"))
+            and os.path.exists(os.path.join(BERT_MODEL_PATH, "vocab.txt"))
+            and os.path.exists(os.path.join(BERT_MODEL_PATH, "pytorch_model.bin"))
+        ):
+            self.tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_PATH)
+            self.bert = BertModel.from_pretrained(BERT_MODEL_PATH)
+        else:
+            self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", cache_dir=BERT_MODEL_PATH)
+            self.bert = BertModel.from_pretrained("bert-base-uncased", cache_dir=BERT_MODEL_PATH)
         self.dense = nn.Linear(768, 2)  # bert默认的隐藏单元数是768， 输出单元是2，表示二分类
 
     def forward(self, batch_sentences, device):
