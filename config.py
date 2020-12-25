@@ -17,3 +17,4 @@ VAL_DATA_RATIO = 1 - TRAIN_DATA_RATIO - TEST_DATA_RATIO  # 验证数据比例
 # 若没有模型路径则自动创建
 if not os.path.exists(MODEL_PATH):
     os.mkdir(MODEL_PATH)
+    os.mkdir(BERT_MODEL_PATH)
