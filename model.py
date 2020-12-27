@@ -8,7 +8,7 @@ import os
 import torch
 from torch import nn
 from transformers import BertModel, BertTokenizer
-from config import BERT_MODEL_PATH
+from config import BERT_MODEL_PATH, BERT_MODEL_NAME
 
 
 class Net(nn.Module):
@@ -22,8 +22,8 @@ class Net(nn.Module):
             self.tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_PATH)
             self.bert = BertModel.from_pretrained(BERT_MODEL_PATH)
         else:
-            self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", cache_dir=BERT_MODEL_PATH)
-            self.bert = BertModel.from_pretrained("bert-base-uncased", cache_dir=BERT_MODEL_PATH)
+            self.tokenizer = BertTokenizer.from_pretrained(BERT_MODEL_NAME, cache_dir=BERT_MODEL_PATH)
+            self.bert = BertModel.from_pretrained(BERT_MODEL_NAME, cache_dir=BERT_MODEL_PATH)
         self.dense = nn.Linear(768, 2)  # bert默认的隐藏单元数是768， 输出单元是2，表示二分类
 
     def forward(self, batch_sentences, device="cpu"):
