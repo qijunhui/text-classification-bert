@@ -56,20 +56,14 @@ optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss()  # 损失函数
 
 with tqdm(iterable=range(epochs), desc="进度条", ncols=150) as bar:
+    train_acc = 0
+    val_acc = 0
+    max_val_acc = 0
     for epoch in bar:
         print_avg_loss = 0
-        train_acc = 0
-        val_acc = 0
-
-        net.eval()  # 预测
-        for i in range(val_batch_count):
-            inputs = val_texts[i * batch_size : (i + 1) * batch_size]
-            labels = torch.tensor(val_targets[i * batch_size : (i + 1) * batch_size]).to(device)
-            outputs = net(inputs, device=device)
-            val_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
-        val_acc = val_acc / val_batch_count
 
         net.train()  # 训练
+        train_acc = 0
         for i in range(train_batch_count):
             inputs = train_texts[i * batch_size : (i + 1) * batch_size]
             labels = torch.tensor(train_targets[i * batch_size : (i + 1) * batch_size]).to(device)
@@ -96,3 +90,19 @@ with tqdm(iterable=range(epochs), desc="进度条", ncols=150) as bar:
                 SUMMARY_WRITER.add_scalar(tag="val_acc", scalar_value=val_acc, global_step=batch_step)
             print_avg_loss += loss.item()
             train_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
+
+        net.eval()  # 预测
+        val_acc = 0
+        for i in range(val_batch_count):
+            inputs = val_texts[i * batch_size : (i + 1) * batch_size]
+            labels = torch.tensor(val_targets[i * batch_size : (i + 1) * batch_size]).to(device)
+            outputs = net(inputs, device=device)
+            val_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
+        val_acc = val_acc / val_batch_count
+
+        if max_val_acc < val_acc:
+            max_val_acc = val_acc
+            torch.save(
+                net.state_dict(),
+                os.path.join(MODEL_PATH, f"{epoch}-train_acc{train_acc:.4f}-val_acc{val_acc:.4f}-net.pkl"),
+            )
