@@ -20,4 +20,5 @@ def predict(text):
 
 
 if __name__ == "__main__":
-    predict("strange , funny , twisted , brilliant and macabre")
+    text = "strange , funny , twisted , brilliant and macabre"
+    print("预测结果: ", predict(text))
