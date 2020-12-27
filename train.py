@@ -25,16 +25,16 @@ train_datasets = read_csv(os.path.join(DATA_PATH, "train.tsv"), filter_title=Tru
 train_texts = [text for text, target in train_datasets]
 train_targets = [int(target) for text, target in train_datasets]
 
-test_datasets = read_csv(os.path.join(DATA_PATH, "test.tsv"), filter_title=True, delimiter="\t")
-test_texts = [text for text, target in test_datasets]
-test_targets = [int(target) for text, target in test_datasets]
+val_datasets = read_csv(os.path.join(DATA_PATH, "val.tsv"), filter_title=True, delimiter="\t")
+val_texts = [text for text, target in val_datasets]
+val_targets = [int(target) for text, target in val_datasets]
 
 batch_size = 50
 epochs = 10
 lr = 0.003
 print_every_batch = 5
 train_batch_count = ceil(len(train_datasets) / batch_size)
-test_batch_count = ceil(len(test_datasets) / batch_size)
+val_batch_count = ceil(len(val_datasets) / batch_size)
 
 net = Net().to(device)
 
@@ -59,15 +59,15 @@ with tqdm(iterable=range(epochs), desc="进度条", ncols=150) as bar:
     for epoch in bar:
         print_avg_loss = 0
         train_acc = 0
-        test_acc = 0
+        val_acc = 0
 
         net.eval()  # 预测
-        for i in range(test_batch_count):
-            inputs = test_texts[i * batch_size : (i + 1) * batch_size]
-            labels = torch.tensor(test_targets[i * batch_size : (i + 1) * batch_size]).to(device)
+        for i in range(val_batch_count):
+            inputs = val_texts[i * batch_size : (i + 1) * batch_size]
+            labels = torch.tensor(val_targets[i * batch_size : (i + 1) * batch_size]).to(device)
             outputs = net(inputs, device=device)
-            test_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
-        test_acc = test_acc / test_batch_count
+            val_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
+        val_acc = val_acc / val_batch_count
 
         net.train()  # 训练
         for i in range(train_batch_count):
@@ -88,11 +88,11 @@ with tqdm(iterable=range(epochs), desc="进度条", ncols=150) as bar:
                         "lr": optimizer.param_groups[0]["lr"],  # 如果为不同层设置不同的学习率，则修改index即可
                         "loss": f"{print_avg_loss / i:.4f}",
                         "train_acc": f"{train_acc / i:.4f}",
-                        "test_acc": f"{test_acc:.4f}",
+                        "val_acc": f"{val_acc:.4f}",
                     }
                 )
                 SUMMARY_WRITER.add_scalar(tag="loss", scalar_value=print_avg_loss / i, global_step=batch_step)
                 SUMMARY_WRITER.add_scalar(tag="train_acc", scalar_value=train_acc / i, global_step=batch_step)
-                SUMMARY_WRITER.add_scalar(tag="test_acc", scalar_value=test_acc, global_step=batch_step)
+                SUMMARY_WRITER.add_scalar(tag="val_acc", scalar_value=val_acc, global_step=batch_step)
             print_avg_loss += loss.item()
             train_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
