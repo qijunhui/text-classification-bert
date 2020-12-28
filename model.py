@@ -26,9 +26,9 @@ class Net(nn.Module):
             self.bert = BertModel.from_pretrained(BERT_MODEL_NAME, cache_dir=BERT_MODEL_PATH)
         self.dense = nn.Linear(768, 2)  # bert默认的隐藏单元数是768， 输出单元是2，表示二分类
 
-    def forward(self, batch_sentences, device="cpu"):
+    def forward(self, texts, device="cpu"):
         batch_tokenized = self.tokenizer.batch_encode_plus(
-            batch_sentences, add_special_tokens=True, padding="max_length", truncation=True, max_length=64
+            texts, add_special_tokens=True, padding="max_length", truncation=True, max_length=64
         )  # add_special_tokens 在句首添加[CLS]  padding 填充  truncation 截断  max_length 最大句长
         # print(self.tokenizer.convert_ids_to_tokens(batch_tokenized["input_ids"][0]))  # 可以将编码后的input_ids转化为文本
         # input_ids  torch.Size([batch, max_length])  [[idx, idx, ...],...]  idx为单词index  填充为0

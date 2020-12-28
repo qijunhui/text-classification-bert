@@ -9,10 +9,10 @@ import os
 import torch
 from torch import nn
 from torch import optim
-from sklearn.metrics import accuracy_score
-from math import ceil
-from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+from math import ceil
+from sklearn.metrics import accuracy_score
 from config import DATA_PATH, MODEL_PATH
 from utils import read_csv
 from model import Net
@@ -33,8 +33,6 @@ batch_size = 50
 epochs = 10
 lr = 0.003
 print_every_batch = 5
-train_batch_count = ceil(len(train_datasets) / batch_size)
-val_batch_count = ceil(len(val_datasets) / batch_size)
 
 net = Net().to(device)
 
@@ -59,45 +57,49 @@ with tqdm(iterable=range(epochs), desc="进度条", ncols=150) as bar:
     train_acc = 0
     val_acc = 0
     max_val_acc = 0
+    batch_step = 0
     for epoch in bar:
         print_avg_loss = 0
 
         net.train()  # 训练
         train_acc = 0
-        for i in range(train_batch_count):
-            inputs = train_texts[i * batch_size : (i + 1) * batch_size]
-            labels = torch.tensor(train_targets[i * batch_size : (i + 1) * batch_size]).to(device)
+        for index in range(ceil(len(train_datasets) / batch_size)):
+            texts = train_texts[index * batch_size : (index + 1) * batch_size]
+            targets = torch.tensor(train_targets[index * batch_size : (index + 1) * batch_size]).to(device)
 
-            outputs = net(inputs, device=device)
-            loss = criterion(outputs, labels)
+            outputs = net(texts, device=device)
+            loss = criterion(outputs, targets)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            batch_step = epoch * train_batch_count + i
-            if batch_step % print_every_batch == 0 and i != 0:
+            print_avg_loss += loss.item()
+            train_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), targets.cpu())
+            batch_step += 1
+
+            if batch_step % print_every_batch == 0:
                 bar.set_postfix(
                     {
                         "batch_step": f"{batch_step}",
                         "lr": optimizer.param_groups[0]["lr"],  # 如果为不同层设置不同的学习率，则修改index即可
-                        "loss": f"{print_avg_loss / i:.4f}",
-                        "train_acc": f"{train_acc / i:.4f}",
+                        "loss": f"{print_avg_loss / (index + 1):.4f}",
+                        "train_acc": f"{train_acc / (index + 1):.4f}",
                         "val_acc": f"{val_acc:.4f}",
                     }
                 )
-                SUMMARY_WRITER.add_scalar(tag="loss", scalar_value=print_avg_loss / i, global_step=batch_step)
-                SUMMARY_WRITER.add_scalar(tag="train_acc", scalar_value=train_acc / i, global_step=batch_step)
+                SUMMARY_WRITER.add_scalar(tag="loss", scalar_value=print_avg_loss / (index + 1), global_step=batch_step)
+                SUMMARY_WRITER.add_scalar(tag="train_acc", scalar_value=train_acc / (index + 1), global_step=batch_step)
                 SUMMARY_WRITER.add_scalar(tag="val_acc", scalar_value=val_acc, global_step=batch_step)
-            print_avg_loss += loss.item()
-            train_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
 
         net.eval()  # 预测
         val_acc = 0
-        for i in range(val_batch_count):
-            inputs = val_texts[i * batch_size : (i + 1) * batch_size]
-            labels = torch.tensor(val_targets[i * batch_size : (i + 1) * batch_size]).to(device)
-            outputs = net(inputs, device=device)
-            val_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), labels.cpu())
+        val_batch_count = 0
+        for index in range(ceil(len(val_datasets) / batch_size)):
+            texts = val_texts[index * batch_size : (index + 1) * batch_size]
+            targets = torch.tensor(val_targets[index * batch_size : (index + 1) * batch_size]).to(device)
+            outputs = net(texts, device=device)
+            val_acc += accuracy_score(torch.argmax(outputs, dim=1).cpu(), targets.cpu())
+            val_batch_count += 1
         val_acc = val_acc / val_batch_count
 
         if max_val_acc < val_acc:
